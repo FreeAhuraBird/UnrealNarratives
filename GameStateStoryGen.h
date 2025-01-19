@@ -1,0 +1,80 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "HttpModule.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameStateStoryGen.generated.h"
+
+UCLASS()
+class PROJECT_API AGameStateStoryGen : public AGameStateBase
+{
+	GENERATED_BODY()
+
+	friend class MockGameStateStoryGen;
+    friend class FGameStateStoryGenIntegrationTest; // Added friend declaration for integration test
+
+public:
+	AGameStateStoryGen();
+	// Tick Functions
+	void TickObjectMovement();
+
+	// Json String Whole environment
+	TSharedPtr<FJsonObject> GenerateStartEnvironment();
+
+	// Actor Tracking
+	void GetActors();
+	void PerformTracking();
+
+	// For determining relativity
+	void GetPlayerRelativity(const AActor* TargetActor);
+	FString GetRelativePosition(const double& ForwardDot, const double& RightDot, const double& VerticalDot);
+
+	//FString question_prompt(const FString& indicator);
+	void SendPayload(const TSharedPtr<FJsonObject>& Event);
+	void httpSendReq();
+
+	TSharedPtr<FJsonObject> SerializeVector(const FVector& Vector);
+
+	// Other
+	virtual void BeginPlay() override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LLM-Service")
+	FString RetrievedApiKey;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Details")
+	FString GameTitle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Details")
+	FString Theme;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Details")
+	FString Description;
+
+private:
+	// Timer
+	FTimerHandle TimerHandle;
+
+	// Tracked objects struct
+	struct FTrackedObject {
+		AActor* Actor;
+		FString ActorName;
+		FVector PreviousPosition;
+		bool IsPlayer;
+	};
+
+	// Tracked objects array using the struct above
+	TArray<FTrackedObject> TrackedObjects;
+
+	// Other variables
+	FString LLM_response;
+	bool generate_stories = true;
+	TArray<TSharedPtr<FJsonObject>> EventHistoryArray;
+	TArray<FString> LLMResponseArray;
+	TSharedPtr<FJsonObject> StartEnviroment;
+	TSharedPtr<FJsonObject> CurrentEnviroment;
+	int Event_Count = 0;
+
+	void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+};
